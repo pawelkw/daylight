@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0d0e22">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Daylight">
+  <meta name="description" content="Counts down to the moments the light starts coming back.">
+  <title>Daylight milestones</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+  <link rel="stylesheet" href="app.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <h1><svg viewBox="0 0 24 24" aria-hidden="true" class="sun"><use href="#i-sun"/></svg> Daylight</h1>
+    <button type="button" class="icon-button" id="open-settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sliders"/></svg>
+    </button>
+  </header>
+
+  <main id="app"></main>
+
+  <dialog id="settings" aria-labelledby="settings-title">
+    <form method="dialog" id="settings-form">
+      <h2 id="settings-title">Settings</h2>
+
+      <fieldset>
+        <legend>Location</legend>
+        <p class="hint">Only used on this phone to work out sunrise and sunset. It's rounded to about a kilometre and never sent anywhere.</p>
+        <button type="button" class="btn" id="locate">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg> Use my location
+        </button>
+        <label>Or type latitude, longitude
+          <input name="coords" inputmode="decimal" autocomplete="off" placeholder="e.g. 51.5, -0.12">
+        </label>
+        <p class="hint" id="locate-status" role="status"></p>
+      </fieldset>
+
+      <label>Bearable day length (hours, blank = off)
+        <input name="bearable" type="number" inputmode="decimal" min="1" max="23" step="0.5" placeholder="e.g. 10">
+      </label>
+      <label>Usable evenings: sunset after (blank = off)
+        <input name="evening" type="time">
+      </label>
+
+      <div class="actions">
+        <button type="submit" class="btn" value="cancel" formnovalidate>Cancel</button>
+        <button type="submit" class="btn primary" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></symbol>
+    <symbol id="i-sunset" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 3v6M9 6l3 3 3-3M4.5 13.5 6 15M19.5 13.5 18 15"/></g></symbol>
+    <symbol id="i-sunrise" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 9V3M9 6l3-3 3 3M4.5 13.5 6 15M19.5 13.5 18 15"/></g></symbol>
+    <symbol id="i-grow" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></g></symbol>
+    <symbol id="i-half" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></g></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.3" fill="currentColor"/></symbol>
+  </svg>
+</body>
+</html>
