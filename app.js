@@ -4,6 +4,7 @@ const STORE = 'daylight';
 const app = document.getElementById('app');
 const dialog = document.getElementById('settings');
 const form = document.getElementById('settings-form');
+const coordsInput = form.elements.coords;
 const locateStatus = document.getElementById('locate-status');
 
 // ---- Settings (kept on this device only) ----
@@ -34,31 +35,15 @@ const parseCoords = (v) => {
   const m = String(v ?? '').trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
   return m && Math.abs(+m[1]) <= 90 && Math.abs(+m[2]) <= 180 ? { lat: round(+m[1]), lon: round(+m[2]) } : null;
 };
+const coordsText = ({ lat, lon }) => `${lat}, ${lon}`;
 
-function locate({ quiet = false } = {}) {
-  if (!('geolocation' in navigator)) {
-    if (!quiet) locateStatus.textContent = 'This browser cannot share a location. Type the coordinates instead.';
-    return Promise.resolve(null);
-  }
-  if (!quiet) locateStatus.textContent = 'Finding you…';
-  return new Promise((resolve) => {
+const DENIED = 'Location is off for this app. Allow it in Settings › Privacy & Security › Location Services, or type the coordinates.';
+function currentPlace() {
+  if (!('geolocation' in navigator)) return Promise.reject(new Error('This browser cannot share a location. Type the coordinates instead.'));
+  return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const place = { lat: round(pos.coords.latitude), lon: round(pos.coords.longitude) };
-        save({ ...settings, ...place });
-        locateStatus.textContent = '';
-        form.elements.coords.value = `${place.lat}, ${place.lon}`;
-        render();
-        resolve(place);
-      },
-      (err) => {
-        if (!quiet) {
-          locateStatus.textContent = err.code === err.PERMISSION_DENIED
-            ? 'Location is off for this app. Allow it in Settings › Privacy & Security › Location Services, or type the coordinates.'
-            : 'Could not find your location. Try again, or type the coordinates.';
-        }
-        resolve(null);
-      },
+      (pos) => resolve({ lat: round(pos.coords.latitude), lon: round(pos.coords.longitude) }),
+      (err) => reject(new Error(err.code === err.PERMISSION_DENIED ? DENIED : 'Could not find your location. Try again, or type the coordinates.')),
       { enableHighAccuracy: false, maximumAge: 6 * 3600e3, timeout: 15000 },
     );
   });
@@ -85,8 +70,19 @@ const words = (p) => ({
 
 const date = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 const countdown = (n) => (n < 1 ? 'Today' : n === 1 ? 'Tomorrow' : `in ${n} days`);
-const dur = (ms) => { const m = Math.max(0, Math.round(ms / 60e3)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
-const change = (ms) => { const s = Math.round(Math.abs(ms) / 1000); return `${ms < 0 ? '−' : '+'}${Math.floor(s / 60)}m ${s % 60}s`; };
+// Intl.DurationFormat localises "8h 37m"; older browsers get the English short form.
+const durations = 'DurationFormat' in Intl ? new Intl.DurationFormat(undefined, { style: 'narrow' }) : null;
+const fmt = (parts) => (durations
+  ? durations.format(parts)
+  : Object.entries(parts).filter(([, v]) => v).map(([k, v]) => `${v}${k[0]}`).join(' ')) || '0m';
+const dur = (ms) => {
+  const m = Math.max(0, Math.round(ms / 60e3));
+  return fmt({ hours: Math.floor(m / 60), minutes: m % 60 });
+};
+const change = (ms) => {
+  const s = Math.round(Math.abs(ms) / 1000);
+  return `${ms < 0 ? '−' : '+'}${fmt({ minutes: Math.floor(s / 60), seconds: s % 60 })}`;
+};
 const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const where = ({ lat, lon }) => `${Math.abs(lat).toFixed(2)}° ${lat < 0 ? 'S' : 'N'}, ${Math.abs(lon).toFixed(2)}° ${lon < 0 ? 'W' : 'E'}`;
 
@@ -105,23 +101,35 @@ function welcome() {
   const status = document.getElementById('welcome-status');
   document.getElementById('welcome-locate').addEventListener('click', async () => {
     status.textContent = 'Finding you…';
-    const place = await locate({ quiet: true });
-    if (!place) status.textContent = 'Could not get your location. Allow it in Settings › Privacy & Security › Location Services, or type the coordinates.';
+    try {
+      save({ ...settings, ...(await currentPlace()), source: 'gps' });
+      render();
+    } catch (e) {
+      status.textContent = e.message;
+    }
   });
   document.getElementById('welcome-manual').addEventListener('click', openSettings);
 }
 
 function render() {
-  if (settings.lat == null) return welcome();
+  // Re-rendering replaces the focused button, so put focus back on the screen rather than lose it.
+  const hadFocus = app.contains(document.activeElement);
+  if (settings.lat == null) {
+    welcome();
+  } else {
+    dashboard();
+  }
+  if (hadFocus) (document.getElementById('place-button') || document.getElementById('welcome-locate'))?.focus({ preventScroll: true });
+}
 
-  const now = new Date();
-  const s = season(new Date(now).setHours(12, 0, 0, 0), settings.lat, settings.lon,
+function dashboard() {
+  const s = season(new Date().setHours(12, 0, 0, 0), settings.lat, settings.lon,
     { bearable: bearableMinutes(), evening: eveningMinutes() });
   const next = s.points[s.next];
   const days = s.daysUntil(next);
   const w = words(next);
   const state = (p) => (p.key === next.key ? 'next' : s.done(p) ? 'done' : 'ahead');
-  const segs = s.points.map((p, i) => `<i><em style="width:${i < s.next ? 100 : i === s.next ? s.progress * 100 : 0}%"></em></i>`).join('');
+  const segs = s.points.map((p, i) => `<i style="--fill:${i < s.next ? 1 : i === s.next ? s.progress.toFixed(3) : 0}"></i>`).join('');
   const passed = `${s.next} of ${s.points.length} milestones passed. Next: ${w.title}, ${countdown(days).toLowerCase()}.`;
 
   const n = Math.min(5, s.points.length);
@@ -134,7 +142,7 @@ function render() {
   const nowAt = ni > 0 ? centre(ni - 1) + (centre(ni) - centre(ni - 1)) * s.progress : 0;
 
   app.innerHTML = `
-    <section class="hero" aria-label="Next milestone">
+    <section class="hero">
       <p class="eyebrow">${days < 1 ? 'Milestone today' : 'Next milestone'}</p>
       ${days < 2
         ? `<p class="big words">${countdown(days)}</p>`
@@ -150,11 +158,11 @@ function render() {
       </div>
     </section>
 
-    <section class="card" aria-label="Milestones ahead">
-      <div class="track" style="--now:${nowAt}%" role="img" aria-label="${passed}">
+    <section class="card">
+      <div class="track" style="--now:${nowAt.toFixed(2)}; --count:${win.length}" aria-hidden="true">
         <div class="line"></div><div class="done-line"></div><div class="now"></div>
         ${win.map((p, i) => `
-          <div class="node ${state(p)}" style="left:${centre(i)}%;width:${100 / win.length}%" aria-hidden="true">
+          <div class="node ${state(p)}" style="--at:${centre(i).toFixed(2)}">
             <small>${date(p.day)}</small>
             <span class="slot"><span class="mark">${state(p) === 'done' ? icon('check') : ''}</span></span>
             <span class="lbl">${words(p).label[0]}<br>${words(p).label[1]}</span>
@@ -164,7 +172,7 @@ function render() {
 
     <section class="card">
       <h3>The way back to light</h3>
-      <ol class="list">
+      <ol class="list" role="list">
         ${s.points.map((p) => `
           <li class="row ${state(p)}">
             <span class="dot">${icon(state(p) === 'done' ? 'check' : words(p).icon)}</span>
@@ -179,26 +187,72 @@ function render() {
 }
 
 // ---- Settings dialog ----
+// "Use my location" only fills the field, so Cancel still undoes it.
+let gpsFill = '';
 function openSettings() {
-  form.elements.coords.value = settings.lat != null ? `${settings.lat}, ${settings.lon}` : '';
+  coordsInput.value = settings.lat != null ? coordsText(settings) : '';
+  coordsInput.setCustomValidity('');
+  gpsFill = settings.source === 'gps' ? coordsInput.value : '';
   form.elements.bearable.value = settings.bearable === undefined ? 10 : settings.bearable;
   form.elements.evening.value = settings.evening === undefined ? '17:00' : settings.evening;
   locateStatus.textContent = '';
+  dialog.returnValue = '';
   dialog.showModal();
 }
 document.getElementById('open-settings').addEventListener('click', openSettings);
-document.getElementById('locate').addEventListener('click', () => locate());
+document.getElementById('settings-cancel').addEventListener('click', () => dialog.close());
+
+document.getElementById('locate').addEventListener('click', async () => {
+  locateStatus.textContent = 'Finding you…';
+  try {
+    gpsFill = coordsText(await currentPlace());
+    coordsInput.value = gpsFill;
+    coordsInput.setCustomValidity('');
+    locateStatus.textContent = 'Found you. Save to use it.';
+  } catch (e) {
+    locateStatus.textContent = e.message;
+  }
+});
+
+coordsInput.addEventListener('input', () => coordsInput.setCustomValidity(''));
+form.addEventListener('submit', (e) => {
+  if (e.submitter?.value !== 'save') return;
+  const value = coordsInput.value.trim();
+  if (!value && settings.lat == null) {
+    coordsInput.setCustomValidity('Use your location or type latitude, longitude, e.g. 51.5, -0.12');
+  } else if (value && !parseCoords(value)) {
+    coordsInput.setCustomValidity('Use latitude, longitude in degrees, e.g. 51.5, -0.12');
+  } else {
+    return;
+  }
+  e.preventDefault();
+  coordsInput.reportValidity();
+});
+
 dialog.addEventListener('close', () => {
-  if (dialog.returnValue !== 'save') return;
-  const place = parseCoords(form.elements.coords.value);
+  const choice = dialog.returnValue;
+  dialog.returnValue = '';
+  if (choice !== 'save') return;
+  const value = coordsInput.value.trim();
+  const place = parseCoords(value);
   save({
     ...settings,
-    ...(place || {}),
+    ...(place ? { ...place, source: value === gpsFill ? 'gps' : 'manual' } : {}),
     bearable: form.elements.bearable.value,
     evening: form.elements.evening.value,
   });
   render();
 });
+
+// Safari has no closedby="any" yet, so tapping the backdrop is handled here.
+if (!('closedBy' in HTMLDialogElement.prototype)) {
+  dialog.addEventListener('click', (event) => {
+    if (event.target !== dialog) return;
+    const r = dialog.getBoundingClientRect();
+    const inside = r.top <= event.clientY && event.clientY <= r.bottom && r.left <= event.clientX && event.clientX <= r.right;
+    if (!inside) dialog.close();
+  });
+}
 
 // ---- Keep it current ----
 // The countdown changes at midnight; a phone may leave the app open or suspended across it.
@@ -209,10 +263,17 @@ function refreshIfNewDay() {
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfNewDay(); });
 setInterval(refreshIfNewDay, 60e3);
 
-// Follow the phone when it moves, but only once location has already been allowed.
-if (settings.lat != null && navigator.permissions?.query) {
+// Follow the phone when it moves, but only for a location that came from GPS (never one
+// typed by hand) and only once location has already been allowed.
+if (settings.source === 'gps' && navigator.permissions?.query) {
   navigator.permissions.query({ name: 'geolocation' })
-    .then((p) => { if (p.state === 'granted') locate({ quiet: true }); })
+    .then((p) => (p.state === 'granted' ? currentPlace() : null))
+    .then((place) => {
+      if (place && (place.lat !== settings.lat || place.lon !== settings.lon)) {
+        save({ ...settings, ...place });
+        render();
+      }
+    })
     .catch(() => {});
 }
 

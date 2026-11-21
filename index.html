@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="text-scale" content="scale">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0d0e22">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -26,31 +27,38 @@
 
   <main id="app"></main>
 
-  <dialog id="settings" aria-labelledby="settings-title">
+  <dialog id="settings" closedby="any" aria-labelledby="settings-title">
     <form method="dialog" id="settings-form">
       <h2 id="settings-title">Settings</h2>
 
       <fieldset>
         <legend>Location</legend>
-        <p class="hint">Only used on this phone to work out sunrise and sunset. It's rounded to about a kilometre and never sent anywhere.</p>
-        <button type="button" class="btn" id="locate">
+        <p class="hint" id="coords-why">Only used on this phone to work out sunrise and sunset. It's rounded to about a kilometre and never sent anywhere.</p>
+        <button type="button" class="btn" id="locate" autofocus>
           <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg> Use my location
         </button>
-        <label>Or type latitude, longitude
-          <input name="coords" inputmode="decimal" autocomplete="off" placeholder="e.g. 51.5, -0.12">
-        </label>
-        <p class="hint" id="locate-status" role="status"></p>
+        <div class="field">
+          <label for="coords">Or type latitude, longitude</label>
+          <input id="coords" name="coords" type="text" autocomplete="off" autocorrect="off" autocapitalize="none"
+                 spellcheck="false" enterkeyhint="done" placeholder="e.g. 51.5, -0.12" aria-describedby="coords-why locate-status">
+          <p class="hint" id="locate-status" role="status"></p>
+        </div>
       </fieldset>
 
-      <label>Bearable day length (hours, blank = off)
-        <input name="bearable" type="number" inputmode="decimal" min="1" max="23" step="0.5" placeholder="e.g. 10">
-      </label>
-      <label>Usable evenings: sunset after (blank = off)
-        <input name="evening" type="time">
-      </label>
+      <div class="field">
+        <label for="bearable">Bearable day length (hours)</label>
+        <p class="hint" id="bearable-hint">Becomes a milestone. Leave it blank to turn it off.</p>
+        <input id="bearable" name="bearable" type="number" inputmode="decimal" min="1" max="23" step="0.5"
+               placeholder="e.g. 10" enterkeyhint="done" aria-describedby="bearable-hint">
+      </div>
+      <div class="field">
+        <label for="evening">Usable evenings: sunset after</label>
+        <p class="hint" id="evening-hint">Becomes a milestone. Clear it to turn it off.</p>
+        <input id="evening" name="evening" type="time" aria-describedby="evening-hint">
+      </div>
 
       <div class="actions">
-        <button type="submit" class="btn" value="cancel" formnovalidate>Cancel</button>
+        <button type="button" class="btn" id="settings-cancel">Cancel</button>
         <button type="submit" class="btn primary" value="save">Save</button>
       </div>
     </form>
