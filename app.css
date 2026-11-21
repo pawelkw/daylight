@@ -39,11 +39,9 @@ body {
   color: var(--text);
   font-family: -apple-system, system-ui, sans-serif;
   line-height: 1.4;
-  padding:
-    max(12px, env(safe-area-inset-top, 0px))
-    max(16px, env(safe-area-inset-right, 0px))
-    max(24px, env(safe-area-inset-bottom, 0px))
-    max(16px, env(safe-area-inset-left, 0px));
+  --side-l: max(16px, env(safe-area-inset-left, 0px));
+  --side-r: max(16px, env(safe-area-inset-right, 0px));
+  padding: 0 var(--side-r) max(24px, env(safe-area-inset-bottom, 0px)) var(--side-l);
   overflow-wrap: break-word;
   -webkit-font-smoothing: antialiased;
 }
@@ -58,13 +56,17 @@ svg { inline-size: 1em; block-size: 1em; flex: none; }
 .hint { color: var(--muted); font-size: .85rem; }
 
 /* ---------- Living sky ---------- */
+/* The sky is full-bleed and in the page flow, so what follows always starts below it. Its
+   scene keeps its proportions (meet) instead of zooming and cropping on wider screens. */
 .sky {
-  position: absolute; inset: 0 0 auto 0; block-size: calc(300px + env(safe-area-inset-top, 0px)); z-index: -1; overflow: hidden;
+  position: relative; overflow: hidden;
+  margin-inline: calc(-1 * var(--side-l)) calc(-1 * var(--side-r));
+  block-size: calc(clamp(220px, 36vh, 300px) + env(safe-area-inset-top, 0px));
   background:
     radial-gradient(70% 42% at var(--sun-x) 79%, var(--glow), transparent 70%),
     linear-gradient(180deg, var(--sky-a) 0%, var(--sky-b) 52%, var(--sky-c) 79%);
 }
-.sky svg { display: block; inline-size: 100%; block-size: 100%; }
+.sky svg { display: block; inline-size: 100%; block-size: 100%; overflow: visible; }
 .stars { opacity: var(--stars); transition: opacity var(--sky-speed) ease; }
 #season-label { font: 600 11px var(--rounded); fill: rgba(238, 242, 248, .8); }
 #arc { transition: opacity 1s ease; }
@@ -73,7 +75,13 @@ svg { inline-size: 1em; block-size: 1em; flex: none; }
 @keyframes breathe { 50% { transform: scale(1.14); opacity: .8; } }
 
 /* ---------- Header ---------- */
-.top { display: flex; align-items: center; justify-content: space-between; }
+/* Same column as the content below, whose width excludes the page's side padding. */
+body > .top { max-inline-size: calc(480px + var(--side-l) + var(--side-r)); }
+.top {
+  position: absolute; inset-block-start: max(12px, env(safe-area-inset-top, 0px)); inset-inline: 0;
+  box-sizing: border-box; padding-inline: var(--side-l) var(--side-r);
+  display: flex; align-items: center; justify-content: space-between;
+}
 .top h1 { font: 650 1.15rem/1.1 var(--rounded); letter-spacing: .01em; }
 button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .icon-button, .btn, .place {
@@ -94,7 +102,7 @@ button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-c
 
 /* ---------- Sun times, under the sky ---------- */
 .suntimes {
-  display: flex; justify-content: space-between; margin-block-start: 190px; padding-inline: 4px;
+  display: flex; justify-content: space-between; margin-block-start: -40px; padding-inline: 4px; position: relative;
   font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums;
 }
 .suntimes b { display: block; font: 600 .95rem var(--rounded); color: var(--text); }
@@ -130,7 +138,7 @@ button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-c
 .card h3 { font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-block-end: 10px; }
 
 /* Welcome */
-.welcome { display: flex; flex-direction: column; gap: 14px; margin-block-start: 170px; padding: 22px; background: rgba(13, 14, 34, .72); }
+.welcome { display: flex; flex-direction: column; gap: 14px; margin-block-start: -12px; position: relative; padding: 22px; background: rgba(13, 14, 34, .72); }
 .welcome h2 { font: 500 1.75rem/1.15 var(--serif); }
 .welcome p { color: rgba(238, 242, 248, .85); }
 

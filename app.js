@@ -157,11 +157,16 @@ function paintSky(s, { day = s.today, now = Date.now(), phase } = {}) {
   sunEl.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
   sunEl.style.opacity = up ? 1 : 0;
   seasonLabel.textContent = `${new Date(s.longest.day).toLocaleDateString(undefined, { month: 'long' })}'s path`;
+  // Near midsummer today's path is the longest day's, and the sun passes where the label sits.
+  seasonLabel.style.opacity = share > 0.85 ? 0 : 1;
   const root = document.documentElement.style, k = SKIES[name];
   for (const p of ['a', 'b', 'c']) root.setProperty(`--sky-${p}`, k[p]);
   root.setProperty('--glow', k.glow);
   root.setProperty('--stars', k.stars);
-  root.setProperty('--sun-x', `${((x / 402) * 100).toFixed(1)}%`);
+  // The scene is centred and scaled to fit the sky (meet), so map its x to the sky's width.
+  const sky = document.querySelector('.sky');
+  const scale = Math.min(sky.clientWidth / 402, sky.clientHeight / 300) || 1;
+  root.setProperty('--sun-x', `${((sky.clientWidth - 402 * scale) / 2 + x * scale).toFixed(0)}px`);
   document.querySelector('meta[name="theme-color"]').content = k.a;
 }
 

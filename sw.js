@@ -1,7 +1,7 @@
 // Everything the app needs is static and the maths runs on the device, so the whole
 // app is cached and it works with no connection.
 // Bump VERSION whenever a file below changes so phones pick up the new copy.
-const VERSION = 'daylight-v3';
+const VERSION = 'daylight-v4';
 const FILES = ['./', 'index.html', 'app.css', 'app.js', 'seasons.js', 'cities.js', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/favicon-32.png'];
 
