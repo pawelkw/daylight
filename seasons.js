@@ -174,6 +174,13 @@ export function season(now, lat, lon, { bearable = null, evening = null } = {}) 
     change: today.daylight - light[ti - 1],
     // The first days after the solstice gain only seconds, which would read as "+0 min".
     gained: gained != null && gained > 30e3 ? gained : null,
+    // Shrinking losses are the first good news of winter, before the days start growing.
+    slowing: Math.abs(light[ti] - light[ti - 1]) < Math.abs(light[ti - 1] - light[ti - 2]),
+    longest: days[end],
+    // The whole day series, for the valley chart and previewing other days.
+    days,
+    todayIndex: ti,
+    shortestIndex: shortest,
     daysUntil: (p) => daysBetween(today.day, p.day),
     done: (p) => p.day < today.day,
   };
